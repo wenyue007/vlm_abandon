@@ -1,0 +1,90 @@
+#! /bin/sh -
+
+copy_path=${3}
+copy_path=${copy_path:-"/folk/jhu2/vlm/"}
+
+usage()
+{
+    echo "
+    Usage:
+    $0 [r|u|on|off|g|f|search] value
+        r: reserve
+        u: unreserve
+        on: turnon
+        off: turnoff
+        g: getAttr
+        f: findMine
+        search: find
+    eg: $0 g 22609
+    "
+}
+
+#pick up the related filed from $copy_path
+got_copyfile()
+{
+    if [ ! -d "$copy_path" ]; then echo "Give me the correct path:-)";exit 1; fi 
+    for fff in `ls $copy_path`
+    do
+        realfile=`readlink -f $copy_path/$fff`
+        kkk_f=`echo $realfile | grep ".bin$" &> /dev/null;echo $?`
+        ddd_f=`echo $realfile | grep ".dtb$" &> /dev/null;echo $?`
+        rrr_f=`echo $realfile | grep ".tar.bz2$" &> /dev/null;echo $?`
+
+        if [ $kkk_f -eq 0 ];then
+           kkk=$realfile
+           echo kernel: $realfile
+        elif [ $ddd_f -eq 0 ];then
+           ddd=$realfile
+           echo dtb: $realfile
+        elif [ $rrr_f -eq 0 ];then
+           rrr=$realfile
+           echo rootfs: $realfile
+        fi
+    done
+}
+
+
+#main
+[ $# -gt 3 ] &&{ echo "Too many options...";usage;exit 1; }
+[ -z $1 ] &&{ echo "please input action...";usage;exit 1; }
+
+if [ x"$1" == x"f" ];then
+    :
+else
+    [ -z $2 ] &&{ echo "please input barcode...";usage;exit 1; }
+fi
+
+case $1 in
+    f) opt="findMine";;
+    r) opt="reserve";;
+    u) opt="unreserve";;
+    on) opt="turnOn";;
+    off) opt="turnOff";;
+    g) opt="getAttr";;
+    search) opt="find";;
+    cp) opt="copyFile";got_copyfile;;
+    *) echo "wrong options";;
+esac
+
+
+if [ $opt == "reserve" ]; then
+    /folk/vlm/commandline/vlmTool reserve -s amazon.wrs.com -t $2
+elif [ $opt == "unreserve" ];then
+    /folk/vlm/commandline/vlmTool unreserve -s amazon.wrs.com -t $2
+elif [ $opt == "turnOn" ];then
+    /folk/vlm/commandline/vlmTool turnOn -s amazon.wrs.com -t $2
+elif [ $opt == "turnOff" ];then
+    /folk/vlm/commandline/vlmTool turnOff -s amazon.wrs.com -t $2
+elif [ $opt == "getAttr" ];then
+    /folk/vlm/commandline/vlmTool getAttr -s amazon.wrs.com -t $2 all
+elif [ $opt == "findMine" ];then
+    /folk/vlm/commandline/vlmTool findMine -s amazon.wrs.com  ${2:+"-l"}
+elif [ $opt == "find" ];then
+    /folk/vlm/commandline/vlmTool find  -s amazon.wrs.com -l all | grep "$2" -a3
+elif [ $opt == "copyFile" ];then
+    echo "/folk/vlm/commandline/vlmTool copyFile -s amazon.wrs.com -t $2  -k $kkk -d $ddd -r $rrr"
+    sleep 5
+    /folk/vlm/commandline/vlmTool copyFile -s amazon.wrs.com -t $2  -k $kkk -d $ddd -r $rrr
+fi
+
+echo "Done"
